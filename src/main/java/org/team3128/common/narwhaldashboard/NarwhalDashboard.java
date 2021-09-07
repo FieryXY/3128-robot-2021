@@ -27,6 +27,8 @@ public class NarwhalDashboard extends WebSocketServer {
     private static HashMap<String, DashButtonCallback> buttons = new HashMap<String, DashButtonCallback>();
     private static HashMap<String, NumericalDataCallback> numDataCallbacks = new HashMap<String, NumericalDataCallback>();
 
+    private static HashMap<String, Limelight> limelights = new HashMap<String, Limelight>();
+
     private static String selectedAuto = null;
     private static boolean autosPushed = false;
 
@@ -90,6 +92,18 @@ public class NarwhalDashboard extends WebSocketServer {
     public static void pushAutos() {
         autosPushed = false;
     }
+
+    /**
+     * Set the limelight on the dashboard
+     */
+    public static int getSelectedPipline() {
+        return selectedPipeline;
+    }
+
+    public static void addLimelight(Limelight light) {
+        limelights.put(light.hostname, light);
+    }
+
 
     /**
      * Returns the currently selected auto program
@@ -160,6 +174,26 @@ public class NarwhalDashboard extends WebSocketServer {
                     autosPushed = true;
                 }
 
+
+                jsonString += ",\"limelights\": [";
+
+                for(Limelight lime : limelights.keySet()) {
+                    jsonString += "\""+lime.hostname+"\","
+                }
+                jsonString = jsonString.substring(0, jsonString.length()-1);
+
+                jsonString += "]";
+
+                jsonString += ", \"limelightOptions\": [";
+
+                for(Pipeline pipeline : Pipeline.values()) {
+                    jsonString += "\""+pipeline.toString()+"\",";
+                }
+
+                jsonString = jsonString.substring(0, jsonString.length()-1);
+
+                jsonString += "]";
+
                 jsonString += "}";
 
                 conn.send(jsonString);
@@ -223,6 +257,17 @@ public class NarwhalDashboard extends WebSocketServer {
             }
         } else {
             Log.info("NarwhalDashboard", "Message recieved: " + message);
+        }
+        else if(parts[0].equals("selectPipeline")) {
+            String limelightStr = parts[1];
+            String pipelineStr = parts[2];
+            boolean complete = false;
+            if(limelights.containsKey(limelightStr)) {
+                limelights.get(limelightStr).setPipeline(Pipeline.valueOf(pipelineStr));
+            }
+            else {
+                Log.info("NarwhalDashboard", "Unable to Parse Pipeline Change Request from Dashboard");
+            }
         }
     }
 
